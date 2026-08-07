@@ -29,7 +29,7 @@ const state = {
 };
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x08020f, 0.035);
+scene.fog = new THREE.FogExp2(0x020611, 0.028);
 
 const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 100);
 camera.position.set(0, 0.2, 16);
@@ -39,20 +39,23 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.25;
+renderer.toneMappingExposure = 0.98;
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 1.15, 0.55, 0.15);
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.58, 0.42, 0.52);
 composer.addPass(bloom);
 
-scene.add(new THREE.AmbientLight(0x7b4dff, 1.3));
-const pinkLight = new THREE.PointLight(0xff266f, 90, 20, 1.6);
-pinkLight.position.set(-7, 3, 7);
-scene.add(pinkLight);
-const cyanLight = new THREE.PointLight(0x20f6ff, 80, 20, 1.6);
-cyanLight.position.set(7, -2, 6);
+scene.add(new THREE.AmbientLight(0x263968, 1.05));
+const blueLight = new THREE.PointLight(0x365dff, 34, 22, 1.8);
+blueLight.position.set(-7, 4, 5);
+scene.add(blueLight);
+const cyanLight = new THREE.PointLight(0x39dff5, 28, 20, 1.8);
+cyanLight.position.set(7, -2, 5);
 scene.add(cyanLight);
+const violetLight = new THREE.PointLight(0x7a45d8, 18, 24, 2);
+violetLight.position.set(0, 6, -2);
+scene.add(violetLight);
 
 const world = new THREE.Group();
 scene.add(world);
@@ -111,8 +114,9 @@ function buildReel(x) {
     const angle = index * step;
     const material = new THREE.MeshStandardMaterial({
       map: symbolTextures[index],
-      emissive: new THREE.Color(symbol.color),
-      emissiveIntensity: 0.18,
+      emissive: new THREE.Color(0xffffff),
+      emissiveMap: symbolTextures[index],
+      emissiveIntensity: 0.52,
       roughness: 0.28,
       metalness: 0.32,
       side: THREE.DoubleSide,
@@ -139,7 +143,7 @@ function buildReel(x) {
 [-3.05, 0, 3.05].forEach(buildReel);
 
 const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x1b0a2b, metalness: 0.92, roughness: 0.18 });
-const edgeMaterial = new THREE.MeshStandardMaterial({ color: 0xff206e, emissive: 0xff0a62, emissiveIntensity: 2.4, metalness: 0.65, roughness: 0.2 });
+const edgeMaterial = new THREE.MeshStandardMaterial({ color: 0x263d9e, emissive: 0x4f6cff, emissiveIntensity: 0.9, metalness: 0.72, roughness: 0.24 });
 
 function addFramePiece(width, height, x, y, material = frameMaterial) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, 0.55), material);
@@ -156,11 +160,43 @@ addFramePiece(0.12, 3.65, 1.53, 0.15, frameMaterial);
 
 const halo = new THREE.Mesh(
   new THREE.TorusGeometry(8.2, 0.035, 8, 160),
-  new THREE.MeshBasicMaterial({ color: 0x7d37ff }),
+  new THREE.MeshBasicMaterial({ color: 0x5668ff, transparent: true, opacity: 0.52 }),
 );
-halo.position.z = -2;
+halo.position.z = -3;
 halo.scale.y = 0.7;
 scene.add(halo);
+
+function makeNebulaTexture(innerColor, outerColor) {
+  const nebulaCanvas = document.createElement('canvas');
+  nebulaCanvas.width = 1024;
+  nebulaCanvas.height = 512;
+  const context = nebulaCanvas.getContext('2d');
+  const gradient = context.createRadialGradient(512, 256, 8, 512, 256, 490);
+  gradient.addColorStop(0, innerColor);
+  gradient.addColorStop(0.28, outerColor);
+  gradient.addColorStop(0.72, 'rgba(16, 28, 84, 0.08)');
+  gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 1024, 512);
+  return new THREE.CanvasTexture(nebulaCanvas);
+}
+
+function addNebula(x, y, z, scale, texture, opacity) {
+  const nebula = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    opacity,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  }));
+  nebula.position.set(x, y, z);
+  nebula.scale.set(scale, scale * 0.48, 1);
+  scene.add(nebula);
+  return nebula;
+}
+
+const blueNebula = addNebula(-5.5, 2.8, -8, 19, makeNebulaTexture('rgba(45, 105, 255, 0.52)', 'rgba(33, 52, 150, 0.3)'), 0.36);
+const violetNebula = addNebula(6, -3.5, -9, 17, makeNebulaTexture('rgba(132, 69, 255, 0.42)', 'rgba(59, 32, 132, 0.24)'), 0.3);
 
 const particleCount = prefersReducedMotion ? 180 : 620;
 const particlePositions = new Float32Array(particleCount * 3);
@@ -173,7 +209,7 @@ const particleGeometry = new THREE.BufferGeometry();
 particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
 const particles = new THREE.Points(
   particleGeometry,
-  new THREE.PointsMaterial({ color: 0xf2ccff, size: 0.035, transparent: true, opacity: 0.72 }),
+  new THREE.PointsMaterial({ color: 0xd9e8ff, size: 0.032, transparent: true, opacity: 0.82 }),
 );
 scene.add(particles);
 
@@ -322,10 +358,12 @@ async function spin() {
 function animate(now) {
   const elapsed = clock.getElapsedTime();
   halo.rotation.z = elapsed * 0.08;
+  blueNebula.material.opacity = 0.33 + Math.sin(elapsed * 0.18) * 0.04;
+  violetNebula.material.opacity = 0.28 + Math.cos(elapsed * 0.16) * 0.035;
   particles.rotation.y = elapsed * 0.018;
   particles.position.y = Math.sin(elapsed * 0.25) * 0.25;
-  pinkLight.intensity = 75 + Math.sin(elapsed * 2.1) * 18;
-  cyanLight.intensity = 70 + Math.cos(elapsed * 1.7) * 15;
+  blueLight.intensity = 31 + Math.sin(elapsed * 1.1) * 4;
+  cyanLight.intensity = 26 + Math.cos(elapsed * 0.9) * 3;
 
   reels.forEach((reel, index) => {
     if (!reel.userData.active || now < reel.userData.startedAt) return;

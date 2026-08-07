@@ -3,7 +3,7 @@
 :root {
   color-scheme: dark;
   font-family: Inter, system-ui, sans-serif;
-  background: #08020f;
+  background: #020611;
   color: #fff;
   font-synthesis: none;
   --pink: #ff2b76;
@@ -24,8 +24,10 @@ html, body {
 body {
   min-height: 100svh;
   background:
-    radial-gradient(circle at 50% 40%, rgba(83, 15, 115, 0.35), transparent 35%),
-    linear-gradient(145deg, #050108, #0e0319 55%, #030107);
+    radial-gradient(ellipse at 18% 12%, rgba(43, 77, 180, 0.24), transparent 38%),
+    radial-gradient(ellipse at 82% 24%, rgba(75, 38, 142, 0.18), transparent 34%),
+    radial-gradient(ellipse at 52% 105%, rgba(15, 98, 135, 0.12), transparent 45%),
+    linear-gradient(155deg, #01030a, #050a1d 48%, #02040e);
 }
 
 body::before {
@@ -34,10 +36,14 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.18;
-  background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: linear-gradient(to bottom, #000, transparent 85%);
+  opacity: 0.7;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.9) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(124,184,255,.72) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(255,255,255,.52) 0 .7px, transparent 1px);
+  background-position: 0 0, 47px 63px, 18px 29px;
+  background-size: 137px 137px, 191px 191px, 79px 79px;
+  mask-image: radial-gradient(ellipse at center, #000 15%, rgba(0,0,0,.82) 62%, transparent 100%);
 }
 
 #scene {
@@ -111,7 +117,7 @@ h1 span { color: var(--pink); text-shadow: 0 0 18px rgba(255,43,118,.7); }
   margin: 0 auto 15px;
   padding: 10px 26px 9px;
   text-align: center;
-  background: linear-gradient(90deg, transparent, rgba(45,6,57,.82) 15%, rgba(45,6,57,.82) 85%, transparent);
+  background: linear-gradient(90deg, transparent, rgba(8,17,48,.9) 15%, rgba(18,12,54,.9) 85%, transparent);
   border-block: 1px solid rgba(255,214,77,.38);
   clip-path: polygon(6% 0, 94% 0, 100% 50%, 94% 100%, 6% 100%, 0 50%);
 }
@@ -142,8 +148,8 @@ h1 span { color: var(--pink); text-shadow: 0 0 18px rgba(255,43,118,.7); }
   height: clamp(210px, 30vw, 290px);
   border: 1px solid rgba(255,255,255,.2);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(9,2,16,.36), rgba(5,1,10,.06) 48%, rgba(9,2,16,.48));
-  box-shadow: 0 0 80px rgba(142,31,255,.22), inset 0 0 50px rgba(0,0,0,.62);
+  background: linear-gradient(180deg, rgba(2,7,22,.62), rgba(2,6,18,.14) 48%, rgba(2,7,22,.7));
+  box-shadow: 0 0 55px rgba(55,91,220,.15), inset 0 0 60px rgba(0,0,0,.78);
   overflow: hidden;
 }
 
@@ -156,8 +162,8 @@ h1 span { color: var(--pink); text-shadow: 0 0 18px rgba(255,43,118,.7); }
   pointer-events: none;
 }
 
-.reel-stage::before { top: 0; background: linear-gradient(#08020f, transparent); }
-.reel-stage::after { bottom: 0; background: linear-gradient(transparent, #08020f); }
+.reel-stage::before { top: 0; background: linear-gradient(#030817, transparent); }
+.reel-stage::after { bottom: 0; background: linear-gradient(transparent, #030817); }
 
 .reel-glass {
   position: absolute;
