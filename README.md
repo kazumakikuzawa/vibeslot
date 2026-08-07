@@ -2,6 +2,8 @@
 
 A neon-drenched, free-to-play 3D slot experience built with [Three.js](https://threejs.org/) and Vite.
 
+公開版: [https://kazumakikuzawa.github.io/vibeslot/](https://kazumakikuzawa.github.io/vibeslot/)
+
 ## Features
 
 - Three animated 3D reels with generated symbol textures
