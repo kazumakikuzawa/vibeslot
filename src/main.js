@@ -20,7 +20,7 @@ const rulesDialog = document.querySelector('#rulesDialog');
 const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const state = {
-  credits: Number(localStorage.getItem('bibeslot-credits')) || STARTING_CREDITS,
+  credits: Number(localStorage.getItem('vibeslot-credits')) || STARTING_CREDITS,
   streak: 0,
   jackpot: 88888,
   spinning: false,
@@ -256,7 +256,7 @@ function updateHud() {
   creditsNode.textContent = format(state.credits);
   streakNode.textContent = state.streak;
   jackpotNode.textContent = format(state.jackpot);
-  localStorage.setItem('bibeslot-credits', String(state.credits));
+  localStorage.setItem('vibeslot-credits', String(state.credits));
 }
 
 function animateNumber(node, from, to, duration = 650) {
@@ -349,7 +349,7 @@ async function spin() {
     playTone(110, 0.16, 'square', 0.018);
   }
 
-  localStorage.setItem('bibeslot-credits', String(state.credits));
+  localStorage.setItem('vibeslot-credits', String(state.credits));
   updateHud();
   state.spinning = false;
   spinButton.disabled = false;

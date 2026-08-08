@@ -1,4 +1,4 @@
-# BIBE SLOT
+# VIBE SLOT
 
 A neon-drenched, free-to-play 3D slot experience built with [Three.js](https://threejs.org/) and Vite.
 
