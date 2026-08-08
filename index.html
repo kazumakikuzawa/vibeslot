@@ -26,14 +26,17 @@
           <small>PLAY CREDITS · NO CASH VALUE</small>
         </div>
 
-        <div class="reel-stage" id="reelStage">
-          <div class="payline" aria-hidden="true"><i></i><span>PAYLINE</span><i></i></div>
-          <div class="reel-glass" aria-hidden="true"></div>
-          <div class="reel-labels" aria-live="polite" aria-atomic="true">
-            <span id="reel0">7</span>
-            <span id="reel1">7</span>
-            <span id="reel2">7</span>
+        <div class="reel-stage grid-stage" id="reelStage">
+          <div class="grid-header" aria-hidden="true">
+            <span>20 CELL MATRIX</span>
+            <i></i>
+            <span>13 PAYLINES</span>
           </div>
+          <div class="slot-grid-wrap" id="slotGridWrap">
+            <div class="slot-grid" id="slotGrid" aria-live="polite" aria-label="4行5列のスロット盤面"></div>
+            <svg class="win-lines" id="winLines" aria-hidden="true"></svg>
+          </div>
+          <div class="reel-glass" aria-hidden="true"></div>
           <div class="win-banner" id="winBanner" aria-live="assertive">
             <span id="winEyebrow">READY?</span>
             <strong id="winText">CHASE THE LIGHT</strong>
@@ -77,15 +80,17 @@
         <p class="dialog-kicker">PAYOUT MATRIX</p>
         <h2>光を揃えろ。</h2>
         <div class="payout-list">
-          <div><span>7 7 7</span><strong>+1,000</strong></div>
-          <div><span>★ ★ ★</span><strong>+500</strong></div>
-          <div><span>◆ ◆ ◆</span><strong>+300</strong></div>
-          <div><span>ANY × 3</span><strong>+120</strong></div>
-          <div><span>7 × 2</span><strong>+50</strong></div>
+          <div><span>7 LINE</span><strong>80+</strong></div>
+          <div><span>★ LINE</span><strong>50+</strong></div>
+          <div><span>◆ LINE</span><strong>35+</strong></div>
+          <div><span>● LINE</span><strong>25+</strong></div>
+          <div><span>CH / BAR</span><strong>12+</strong></div>
         </div>
         <p class="fine-print">架空クレジットのみを使用します。購入、換金、賞品、課金要素はありません。</p>
       </form>
     </dialog>
+
+    <div class="coin-rain" id="coinRain" aria-hidden="true"></div>
 
     <script type="module" src="/src/main.js"></script>
   </body>

@@ -6,9 +6,10 @@ A neon-drenched, free-to-play 3D slot experience built with [Three.js](https://t
 
 ## Features
 
-- Three animated 3D reels with generated symbol textures
+- A 4 × 5 symbol matrix with 13 horizontal, vertical, and diagonal paylines
+- Animated win-line overlays plus payout-scaled coin rain that finishes within two seconds
 - Bloom, particles, dynamic lighting, camera shake, and jackpot celebration effects
-- Synthesized Web Audio sound effects (no external audio assets)
+- Synthesized reel sounds, metallic coin chimes, and an EDM loop via Web Audio
 - Responsive keyboard, mouse, and touch controls
 - Fully local fictional credits — no purchases, cash value, accounts, or backend
 - Deterministic unit tests for payout logic

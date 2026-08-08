@@ -59,7 +59,7 @@ button { font: inherit; }
 .game-shell {
   position: relative;
   z-index: 2;
-  width: min(100%, 1100px);
+  width: min(100%, 1440px);
   min-height: 100svh;
   margin: 0 auto;
   padding: 24px 32px 20px;
@@ -107,7 +107,9 @@ h1 span { color: var(--pink); text-shadow: 0 0 18px rgba(255,43,118,.7); }
 .icon-button:hover { border-color: var(--cyan); box-shadow: 0 0 18px rgba(49,246,237,.24); }
 
 .machine {
-  width: min(100%, 820px);
+  width: min(100%, 1240px);
+  min-width: 0;
+  max-width: 100%;
   margin: auto;
   padding-top: clamp(25px, 4vh, 54px);
 }
@@ -145,13 +147,168 @@ h1 span { color: var(--pink); text-shadow: 0 0 18px rgba(255,43,118,.7); }
 
 .reel-stage {
   position: relative;
-  height: clamp(210px, 30vw, 290px);
+  height: clamp(410px, 44vw, 540px);
   border: 1px solid rgba(255,255,255,.2);
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(2,7,22,.62), rgba(2,6,18,.14) 48%, rgba(2,7,22,.7));
   box-shadow: 0 0 55px rgba(55,91,220,.15), inset 0 0 60px rgba(0,0,0,.78);
   overflow: hidden;
 }
+
+.grid-stage {
+  padding: 38px 18px 18px;
+  overflow: hidden;
+  border-color: rgba(91, 119, 255, .48);
+  background:
+    linear-gradient(135deg, rgba(77, 97, 210, .09), transparent 24%),
+    linear-gradient(180deg, rgba(2, 7, 22, .88), rgba(4, 8, 24, .66));
+}
+
+.grid-stage::before, .grid-stage::after { display: none; }
+
+.grid-header {
+  position: absolute;
+  z-index: 7;
+  top: 12px;
+  left: 22px;
+  right: 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(180, 203, 255, .62);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .24em;
+}
+
+.grid-header i { height: 1px; flex: 1; background: linear-gradient(90deg, #4366ff, #27e6e0); opacity: .42; }
+
+.slot-grid-wrap {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+
+.slot-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--symbol-color, #6078ff) 50%, transparent);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--symbol-color, #6078ff) 13%, transparent), transparent 52%),
+    linear-gradient(165deg, rgba(16, 23, 55, .96), rgba(3, 7, 20, .98));
+  box-shadow:
+    inset 0 0 22px rgba(0, 0, 0, .72),
+    inset 0 1px rgba(255,255,255,.08),
+    0 0 12px color-mix(in srgb, var(--symbol-color, #6078ff) 10%, transparent);
+  transition: border-color .18s, filter .18s, transform .18s, box-shadow .18s;
+}
+
+.slot-cell::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  z-index: -1;
+  border: 1px solid color-mix(in srgb, var(--symbol-color, #6078ff) 32%, transparent);
+  border-radius: 8px;
+}
+
+.slot-cell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 22%, rgba(255,255,255,.09) 35%, transparent 48%);
+  transform: translateX(-120%);
+}
+
+.cell-symbol {
+  color: var(--symbol-color);
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(28px, 4.7vw, 64px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -.08em;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--symbol-color) 78%, transparent), 0 0 28px color-mix(in srgb, var(--symbol-color) 38%, transparent);
+}
+
+.slot-cell small {
+  position: absolute;
+  bottom: 8px;
+  color: rgba(220,230,255,.38);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .18em;
+}
+
+.slot-cell > i {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 50%;
+  height: 1px;
+  background: color-mix(in srgb, var(--symbol-color) 32%, transparent);
+}
+
+.slot-cell.rolling {
+  filter: blur(1.2px) brightness(1.45);
+  animation: cell-roll .12s linear infinite;
+}
+
+.slot-cell.rolling .cell-symbol { text-shadow: 0 -18px 8px var(--symbol-color), 0 18px 8px var(--symbol-color); }
+.slot-cell.landed { animation: cell-land .18s cubic-bezier(.2, 1.7, .4, 1); }
+
+.slot-cell.winner {
+  z-index: 4;
+  border-color: #fff7ae;
+  filter: brightness(1.45);
+  transform: translateY(-2px) scale(1.015);
+  box-shadow: inset 0 0 28px color-mix(in srgb, var(--symbol-color) 26%, transparent), 0 0 18px var(--symbol-color), 0 0 40px color-mix(in srgb, var(--symbol-color) 32%, transparent);
+}
+
+.slot-cell.winner::after { animation: cell-shine .8s ease-out 2; }
+
+@keyframes cell-roll { 0% { transform: translateY(-2px); } 50% { transform: translateY(3px); } 100% { transform: translateY(-2px); } }
+@keyframes cell-land { 0% { transform: scaleY(.76); } 100% { transform: scaleY(1); } }
+@keyframes cell-shine { to { transform: translateX(120%); } }
+
+.win-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.win-line, .win-line-underlay {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 1600;
+  stroke-dashoffset: 1600;
+  animation: draw-line .58s cubic-bezier(.2,.8,.2,1) var(--line-delay) forwards;
+}
+
+.win-line-underlay { stroke: rgba(255,255,255,.9); stroke-width: 12; filter: blur(7px); opacity: .7; }
+.win-line { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 10px currentColor); }
+
+@keyframes draw-line { to { stroke-dashoffset: 0; } }
 
 .reel-stage::before, .reel-stage::after {
   content: '';
@@ -220,6 +377,17 @@ h1 span { color: var(--pink); text-shadow: 0 0 18px rgba(255,43,118,.7); }
 .win-banner strong { display: block; margin-top: 3px; font-size: clamp(18px, 4vw, 36px); font-style: italic; letter-spacing: -.04em; text-shadow: 0 0 18px var(--pink); }
 .win-banner.jackpot strong { color: var(--gold); font-size: clamp(26px, 5vw, 46px); text-shadow: 0 0 10px #fff, 0 0 28px var(--gold); }
 
+.grid-stage .win-banner {
+  top: 20px;
+  width: min(54%, 460px);
+  padding: 3px 18px;
+  background: linear-gradient(90deg, transparent, rgba(4,9,28,.96) 14%, rgba(4,9,28,.96) 86%, transparent);
+}
+
+.grid-stage .win-banner span { font-size: 6px; }
+.grid-stage .win-banner strong { margin-top: 0; font-size: clamp(11px, 1.6vw, 18px); }
+.grid-stage .win-banner.jackpot strong { font-size: clamp(13px, 1.8vw, 21px); }
+
 .meter-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -234,6 +402,8 @@ h1 span { color: var(--pink); text-shadow: 0 0 18px rgba(255,43,118,.7); }
   border-radius: 8px;
   background: rgba(9,2,16,.78);
   box-shadow: inset 0 0 24px rgba(140,63,255,.08);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .meter > span { display: block; color: rgba(255,255,255,.46); font-size: 8px; font-weight: 800; letter-spacing: .18em; }
@@ -247,7 +417,7 @@ h1 span { color: var(--pink); text-shadow: 0 0 18px rgba(255,43,118,.7); }
 
 .spin-button {
   position: relative;
-  width: min(100%, 310px);
+  width: min(100%, 370px);
   min-height: 74px;
   padding: 9px 24px;
   overflow: hidden;
@@ -316,11 +486,56 @@ dialog h2 { margin: 5px 0 24px; font-size: 30px; }
 .payout-list span { color: var(--gold); font-family: 'Space Mono', monospace; }
 .fine-print { margin: 20px 0 0; color: rgba(255,255,255,.46); font-size: 11px; line-height: 1.7; }
 
+.coin-rain {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  pointer-events: none;
+  perspective: 700px;
+}
+
+.coin-rain i {
+  position: absolute;
+  top: -46px;
+  left: var(--x);
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  margin-left: -12px;
+  border: 2px solid #fff0a1;
+  border-radius: 50%;
+  color: #8b4b00;
+  background: radial-gradient(circle at 34% 28%, #fffbd0 0 7%, #ffd94a 25%, #e39108 62%, #7c3600 100%);
+  box-shadow: inset 0 0 0 3px rgba(136,69,0,.28), 0 0 8px rgba(255,205,45,.75);
+  font-size: 10px;
+  font-style: normal;
+  opacity: 0;
+  animation: coin-fall var(--duration) cubic-bezier(.18,.65,.45,1) var(--delay) forwards;
+}
+
+@keyframes coin-fall {
+  0% { opacity: 0; transform: translate3d(0, -5vh, 0) rotateY(0deg) rotateZ(0deg); }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--drift), 112vh, 0) rotateY(900deg) rotateZ(220deg); }
+}
+
 @media (max-width: 700px) {
   .game-shell { padding: 18px 16px 12px; }
-  .machine { padding-top: 24px; }
+  .machine { width: calc(100vw - 32px); max-width: calc(100vw - 32px); padding-top: 24px; }
   .jackpot { width: 92%; }
-  .reel-stage { height: 235px; }
+  .reel-stage { height: 390px; }
+  .grid-stage { padding: 34px 7px 9px; border-radius: 12px; }
+  .slot-grid { gap: 4px; }
+  .slot-cell { border-radius: 7px; }
+  .slot-cell::before { inset: 3px; border-radius: 5px; }
+  .slot-cell small { bottom: 4px; font-size: 5px; letter-spacing: .06em; }
+  .cell-symbol { font-size: clamp(22px, 9vw, 38px); }
+  .slot-cell[data-symbol="bar"] .cell-symbol,
+  .slot-cell[data-symbol="cherry"] .cell-symbol { font-size: clamp(17px, 7vw, 29px); }
+  .grid-header { left: 10px; right: 10px; }
   .meter { min-height: 58px; padding: 8px 10px; }
   .meter > span { letter-spacing: .1em; }
   footer { margin-top: 15px; }
@@ -329,7 +544,7 @@ dialog h2 { margin: 5px 0 24px; font-size: 30px; }
 @media (max-height: 760px) and (min-width: 701px) {
   .game-shell { padding-block: 14px 10px; }
   .machine { padding-top: 12px; }
-  .reel-stage { height: 230px; }
+  .reel-stage { height: 390px; }
   .jackpot { margin-bottom: 9px; }
   .controls { margin-top: 8px; }
   .spin-button { min-height: 62px; }

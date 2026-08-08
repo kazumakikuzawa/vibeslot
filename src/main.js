@@ -3,7 +3,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import './style.css';
-import { SYMBOLS, SPIN_COST, STARTING_CREDITS, createSpin, evaluateSpin } from './gameLogic.js';
+import { SYMBOLS, SPIN_COST, STARTING_CREDITS, createCoinTimeline, createGridSpin, evaluateGridSpin } from './gameLogic.js';
 
 const canvas = document.querySelector('#scene');
 const spinButton = document.querySelector('#spinButton');
@@ -16,6 +16,10 @@ const winBanner = document.querySelector('#winBanner');
 const winEyebrow = document.querySelector('#winEyebrow');
 const winText = document.querySelector('#winText');
 const reelStage = document.querySelector('#reelStage');
+const slotGrid = document.querySelector('#slotGrid');
+const slotGridWrap = document.querySelector('#slotGridWrap');
+const winLines = document.querySelector('#winLines');
+const coinRain = document.querySelector('#coinRain');
 const rulesDialog = document.querySelector('#rulesDialog');
 const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -26,6 +30,7 @@ const state = {
   spinning: false,
   sound: true,
   shake: 0,
+  bgmStarted: false,
 };
 
 const scene = new THREE.Scene();
@@ -157,6 +162,7 @@ addFramePiece(0.24, 3.95, -5.16, 0.15, edgeMaterial);
 addFramePiece(0.24, 3.95, 5.16, 0.15, edgeMaterial);
 addFramePiece(0.12, 3.65, -1.53, 0.15, frameMaterial);
 addFramePiece(0.12, 3.65, 1.53, 0.15, frameMaterial);
+world.visible = false;
 
 const halo = new THREE.Mesh(
   new THREE.TorusGeometry(8.2, 0.035, 8, 160),
@@ -216,6 +222,25 @@ scene.add(particles);
 const sparks = [];
 const clock = new THREE.Clock();
 let audioContext;
+let bgmTimer;
+
+const gridCells = Array.from({ length: 20 }, (_, index) => {
+  const cell = document.createElement('div');
+  cell.className = 'slot-cell';
+  cell.dataset.index = index;
+  cell.innerHTML = '<span class="cell-symbol"></span><small></small><i></i>';
+  slotGrid.appendChild(cell);
+  return cell;
+});
+
+function setCellSymbol(cell, symbol) {
+  cell.dataset.symbol = symbol.id;
+  cell.style.setProperty('--symbol-color', symbol.color);
+  cell.querySelector('.cell-symbol').textContent = symbol.label;
+  cell.querySelector('small').textContent = symbol.id.toUpperCase();
+}
+
+gridCells.forEach((cell, index) => setCellSymbol(cell, SYMBOLS[index % SYMBOLS.length]));
 
 function playTone(frequency, duration = 0.1, type = 'sine', volume = 0.045, delay = 0) {
   if (!state.sound) return;
@@ -232,6 +257,148 @@ function playTone(frequency, duration = 0.1, type = 'sine', volume = 0.045, dela
   oscillator.connect(gain).connect(audioContext.destination);
   oscillator.start(start);
   oscillator.stop(start + duration + 0.02);
+}
+
+function ensureAudio() {
+  audioContext ??= new AudioContext();
+  if (audioContext.state === 'suspended') audioContext.resume();
+  return audioContext;
+}
+
+function scheduleKick(time) {
+  const context = ensureAudio();
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.frequency.setValueAtTime(145, time);
+  oscillator.frequency.exponentialRampToValueAtTime(46, time + 0.16);
+  gain.gain.setValueAtTime(0.11, time);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.22);
+  oscillator.connect(gain).connect(context.destination);
+  oscillator.start(time);
+  oscillator.stop(time + 0.24);
+}
+
+function scheduleHat(time, accent = false) {
+  const context = ensureAudio();
+  const buffer = context.createBuffer(1, context.sampleRate * 0.045, context.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let index = 0; index < data.length; index += 1) data[index] = Math.random() * 2 - 1;
+  const source = context.createBufferSource();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  source.buffer = buffer;
+  filter.type = 'highpass';
+  filter.frequency.value = 7200;
+  gain.gain.setValueAtTime(accent ? 0.025 : 0.014, time);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.045);
+  source.connect(filter).connect(gain).connect(context.destination);
+  source.start(time);
+}
+
+function scheduleBass(frequency, time) {
+  const context = ensureAudio();
+  const oscillator = context.createOscillator();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  oscillator.type = 'sawtooth';
+  oscillator.frequency.setValueAtTime(frequency, time);
+  filter.type = 'lowpass';
+  filter.frequency.value = 420;
+  gain.gain.setValueAtTime(0.0001, time);
+  gain.gain.exponentialRampToValueAtTime(0.032, time + 0.025);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.21);
+  oscillator.connect(filter).connect(gain).connect(context.destination);
+  oscillator.start(time);
+  oscillator.stop(time + 0.23);
+}
+
+function scheduleBgmBar() {
+  if (!state.sound) return;
+  const context = ensureAudio();
+  const start = context.currentTime + 0.06;
+  const bassline = [55, 55, 65.41, 73.42, 55, 82.41, 73.42, 65.41];
+  for (let stepIndex = 0; stepIndex < 8; stepIndex += 1) {
+    const time = start + stepIndex * 0.24;
+    if (stepIndex % 2 === 0) scheduleKick(time);
+    scheduleHat(time + 0.12, stepIndex % 4 === 3);
+    scheduleBass(bassline[stepIndex], time);
+  }
+}
+
+function startBgm() {
+  if (state.bgmStarted || !state.sound) return;
+  state.bgmStarted = true;
+  scheduleBgmBar();
+  bgmTimer = setInterval(scheduleBgmBar, 1920);
+}
+
+function stopBgm() {
+  clearInterval(bgmTimer);
+  bgmTimer = undefined;
+  state.bgmStarted = false;
+}
+
+function startSpinSound() {
+  if (!state.sound) return () => {};
+  const context = ensureAudio();
+  const noiseBuffer = context.createBuffer(1, context.sampleRate * 1.6, context.sampleRate);
+  const noise = noiseBuffer.getChannelData(0);
+  for (let index = 0; index < noise.length; index += 1) noise[index] = (Math.random() * 2 - 1) * (1 - index / noise.length);
+  const source = context.createBufferSource();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  const motor = context.createOscillator();
+  const motorGain = context.createGain();
+  source.buffer = noiseBuffer;
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(520, context.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(1900, context.currentTime + 1.3);
+  gain.gain.value = 0.026;
+  motor.type = 'sawtooth';
+  motor.frequency.setValueAtTime(72, context.currentTime);
+  motor.frequency.linearRampToValueAtTime(118, context.currentTime + 1.2);
+  motorGain.gain.value = 0.014;
+  source.connect(filter).connect(gain).connect(context.destination);
+  motor.connect(motorGain).connect(context.destination);
+  source.start();
+  motor.start();
+  return () => {
+    const stopAt = context.currentTime + 0.09;
+    gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+    motorGain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+    source.stop(stopAt + 0.02);
+    motor.stop(stopAt + 0.02);
+  };
+}
+
+function playCoinChime(delay, index) {
+  if (!state.sound) return;
+  const base = 1180 + (index % 7) * 95;
+  playTone(base, 0.085, 'sine', 0.028, delay);
+  playTone(base * 1.52, 0.055, 'triangle', 0.014, delay + 0.012);
+}
+
+function rainCoins(amount) {
+  coinRain.replaceChildren();
+  if (prefersReducedMotion) return;
+  const fragment = document.createDocumentFragment();
+  const timeline = createCoinTimeline(amount);
+  timeline.forEach((entry) => {
+    const coin = document.createElement('i');
+    coin.style.setProperty('--x', `${entry.x}%`);
+    coin.style.setProperty('--delay', `${entry.delay}s`);
+    coin.style.setProperty('--duration', `${entry.duration}s`);
+    coin.style.setProperty('--drift', `${entry.drift}px`);
+    coin.textContent = '◆';
+    fragment.appendChild(coin);
+  });
+  coinRain.appendChild(fragment);
+  const chimeCount = Math.min(timeline.length, 28);
+  for (let index = 0; index < chimeCount; index += 1) {
+    const delay = chimeCount === 1 ? 0 : (index / (chimeCount - 1)) * 1.42;
+    playCoinChime(delay, index);
+  }
+  setTimeout(() => coinRain.replaceChildren(), 2050);
 }
 
 function burst(color, amount = 80) {
@@ -270,30 +437,62 @@ function animateNumber(node, from, to, duration = 650) {
   requestAnimationFrame(tick);
 }
 
-function positiveModulo(value, divisor) {
-  return ((value % divisor) + divisor) % divisor;
+function clearGridEffects() {
+  winLines.replaceChildren();
+  gridCells.forEach((cell) => cell.classList.remove('winner'));
 }
 
-function spinReel(reel, symbolIndex, reelIndex) {
-  const current = reel.rotation.x;
-  const desiredModulo = positiveModulo(-symbolIndex * step, Math.PI * 2);
-  const currentModulo = positiveModulo(current, Math.PI * 2);
-  const correction = positiveModulo(desiredModulo - currentModulo, Math.PI * 2);
-  reel.userData = {
-    ...reel.userData,
-    start: current,
-    target: current + (4 + reelIndex) * Math.PI * 2 + correction,
-    startedAt: performance.now() + reelIndex * 240,
-    duration: (prefersReducedMotion ? 500 : 1450) + reelIndex * 360,
-    active: true,
-    symbolIndex,
-  };
+function animateGrid(outcome) {
+  const intervals = [];
+  gridCells.forEach((cell, index) => {
+    cell.classList.add('rolling');
+    intervals[index] = setInterval(() => {
+      setCellSymbol(cell, SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
+    }, 54 + (index % 3) * 7);
+  });
+
+  return Promise.all(gridCells.map((cell, index) => new Promise((resolve) => {
+    const row = Math.floor(index / 5);
+    const col = index % 5;
+    const settleDelay = prefersReducedMotion ? 220 : 570 + col * 145 + row * 34;
+    setTimeout(() => {
+      clearInterval(intervals[index]);
+      setCellSymbol(cell, outcome[index]);
+      cell.classList.remove('rolling');
+      cell.classList.add('landed');
+      setTimeout(() => cell.classList.remove('landed'), 180);
+      playTone(240 + col * 38 + row * 9, 0.055, 'square', 0.012);
+      resolve();
+    }, settleDelay);
+  })));
 }
 
-function waitForReels() {
-  return new Promise((resolve) => {
-    const poll = () => (reels.some((reel) => reel.userData.active) ? requestAnimationFrame(poll) : resolve());
-    poll();
+function drawWinLines(wins) {
+  winLines.replaceChildren();
+  const wrapRect = slotGridWrap.getBoundingClientRect();
+  winLines.setAttribute('viewBox', `0 0 ${wrapRect.width} ${wrapRect.height}`);
+
+  wins.forEach((win, index) => {
+    win.cells.forEach((cellIndex) => gridCells[cellIndex].classList.add('winner'));
+    const firstRect = gridCells[win.cells[0]].getBoundingClientRect();
+    const lastRect = gridCells[win.cells.at(-1)].getBoundingClientRect();
+    const x1 = firstRect.left - wrapRect.left + firstRect.width / 2;
+    const y1 = firstRect.top - wrapRect.top + firstRect.height / 2;
+    const x2 = lastRect.left - wrapRect.left + lastRect.width / 2;
+    const y2 = lastRect.top - wrapRect.top + lastRect.height / 2;
+    const underlay = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    for (const element of [underlay, line]) {
+      element.setAttribute('x1', x1);
+      element.setAttribute('y1', y1);
+      element.setAttribute('x2', x2);
+      element.setAttribute('y2', y2);
+      element.style.setProperty('--line-delay', `${index * 90}ms`);
+    }
+    underlay.classList.add('win-line-underlay');
+    line.classList.add('win-line');
+    line.setAttribute('stroke', win.symbol.color);
+    winLines.append(underlay, line);
   });
 }
 
@@ -309,43 +508,43 @@ async function spin() {
   }
 
   state.spinning = true;
+  startBgm();
   state.credits -= SPIN_COST;
-  state.jackpot += 7;
+  state.jackpot += 11;
   spinButton.disabled = true;
   reelStage.classList.add('is-spinning');
+  clearGridEffects();
   winBanner.className = 'win-banner';
   winEyebrow.textContent = 'GOOD LUCK';
-  winText.textContent = 'LIGHTS IN MOTION';
+  winText.textContent = '20 CELLS IN MOTION';
   updateHud();
 
-  const outcome = createSpin();
-  outcome.forEach((symbol, index) => spinReel(reels[index], SYMBOLS.indexOf(symbol), index));
-  [110, 146, 184].forEach((frequency, index) => playTone(frequency, 0.8, 'sawtooth', 0.022, index * 0.24));
-
-  await waitForReels();
+  const outcome = createGridSpin();
+  const stopSpinSound = startSpinSound();
+  await animateGrid(outcome);
+  stopSpinSound();
   reelStage.classList.remove('is-spinning');
-  outcome.forEach((symbol, index) => {
-    document.querySelector(`#reel${index}`).textContent = symbol.label;
-  });
 
-  const result = evaluateSpin(outcome, state.streak);
+  const result = evaluateGridSpin(outcome, state.streak);
   const creditsBeforeWin = state.credits;
   state.streak = result.nextStreak;
   state.credits += result.payout;
   winNode.textContent = format(result.payout);
 
   if (result.payout > 0) {
+    drawWinLines(result.wins);
     winBanner.classList.add('show', result.tier);
-    winEyebrow.textContent = result.tier === 'jackpot' ? 'MEGA JACKPOT' : result.multiplier > 1 ? `STREAK ×${result.multiplier}` : 'WINNER';
+    winEyebrow.textContent = result.tier === 'jackpot' ? `${result.wins.length} LINE OVERDRIVE` : result.multiplier > 1 ? `STREAK ×${result.multiplier}` : `${result.wins.length} LINE HIT`;
     winText.textContent = `+${format(result.payout)} CREDITS`;
     animateNumber(creditsNode, creditsBeforeWin, state.credits, result.tier === 'jackpot' ? 1400 : 700);
     burst(result.tier === 'jackpot' ? 0xffd84a : 0xff2b7d, result.tier === 'jackpot' ? 180 : 70);
+    rainCoins(result.payout);
     state.shake = result.tier === 'jackpot' ? 1.4 : 0.55;
     const chord = result.tier === 'jackpot' ? [392, 494, 587, 784] : [440, 554, 659];
     chord.forEach((frequency, index) => playTone(frequency, 0.34, 'triangle', 0.055, index * 0.09));
   } else {
-    winEyebrow.textContent = 'SO CLOSE';
-    winText.textContent = outcome[0].id === outcome[1].id || outcome[1].id === outcome[2].id ? 'ONE LIGHT AWAY' : 'RUN IT BACK';
+    winEyebrow.textContent = 'NO LINE';
+    winText.textContent = 'RUN THE MATRIX AGAIN';
     playTone(110, 0.16, 'square', 0.018);
   }
 
@@ -364,19 +563,6 @@ function animate(now) {
   particles.position.y = Math.sin(elapsed * 0.25) * 0.25;
   blueLight.intensity = 31 + Math.sin(elapsed * 1.1) * 4;
   cyanLight.intensity = 26 + Math.cos(elapsed * 0.9) * 3;
-
-  reels.forEach((reel, index) => {
-    if (!reel.userData.active || now < reel.userData.startedAt) return;
-    const progress = Math.min((now - reel.userData.startedAt) / reel.userData.duration, 1);
-    const eased = 1 - (1 - progress) ** 4;
-    reel.rotation.x = THREE.MathUtils.lerp(reel.userData.start, reel.userData.target, eased);
-    if (progress >= 1) {
-      reel.rotation.x = positiveModulo(reel.userData.target, Math.PI * 2);
-      reel.userData.active = false;
-      playTone(180 + index * 55, 0.08, 'square', 0.035);
-      state.shake = 0.16;
-    }
-  });
 
   for (let index = sparks.length - 1; index >= 0; index -= 1) {
     const spark = sparks[index];
@@ -421,7 +607,12 @@ soundButton.addEventListener('click', () => {
   state.sound = !state.sound;
   soundButton.setAttribute('aria-pressed', String(state.sound));
   soundButton.textContent = state.sound ? '♪' : '×';
-  if (state.sound) playTone(440, 0.1, 'sine');
+  if (state.sound) {
+    playTone(440, 0.1, 'sine');
+    startBgm();
+  } else {
+    stopBgm();
+  }
 });
 document.querySelector('#rulesButton').addEventListener('click', () => rulesDialog.showModal());
 addEventListener('keydown', (event) => {

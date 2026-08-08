@@ -3,4 +3,4 @@ dist/
 .vite/
 *.log
 .DS_Store
-visual-check.png
+*-check.png
